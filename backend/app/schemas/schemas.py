@@ -2,7 +2,7 @@
 Pydantic schemas for MediKiosk API validation
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -48,3 +48,25 @@ class SessionResponse(BaseModel):
     started_at: datetime
     completed_at: Optional[datetime] = None
     answers: List[AnswerItem] = []
+
+
+class DocumentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    session_id: str
+    filename: str
+    file_path: Optional[str] = None
+    type: str
+    uploaded_at: datetime
+    text: Optional[str] = None
+    extracted_data: Optional[Dict[str, Any]] = None
+
+
+class TimelineItem(BaseModel):
+    id: str
+    item_type: str  # "document" | "answer"
+    title: str
+    date_or_time: str
+    timestamp: datetime
+    details: Dict[str, Any]

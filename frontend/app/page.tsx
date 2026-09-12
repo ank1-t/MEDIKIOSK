@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { KioskHeader } from '../components/KioskHeader';
 
 export default function HomePage() {
@@ -21,7 +22,7 @@ export default function HomePage() {
         </p>
 
         {/* Language Selection Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginBottom: '3rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginBottom: '2.5rem' }}>
           <button
             type="button"
             onClick={() => setSelectedLanguage('en')}
@@ -54,8 +55,18 @@ export default function HomePage() {
           </button>
         </div>
 
-        <div>
-          <button type="button" className="btn-large">
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <Link href="/documents" style={{ textDecoration: 'none' }}>
+            <button type="button" className="btn-large">
+              {selectedLanguage === 'en' ? '📄 Upload Documents / OCR →' : '📄 दस्तावेज़ अपलोड व ओसीआर →'}
+            </button>
+          </Link>
+          <button
+            type="button"
+            className="btn-large"
+            style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1' }}
+          >
             {selectedLanguage === 'en' ? 'Start Intake / शुरू करें →' : 'इंटेक शुरू करें →'}
           </button>
         </div>

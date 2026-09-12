@@ -32,3 +32,48 @@ export interface ClinicalSummary {
   allergies: string[];
   alerts: string[];
 }
+
+export interface DocumentRecord {
+  id: number;
+  session_id: string;
+  filename: string;
+  file_path?: string;
+  type: string;
+  uploaded_at: string;
+  text?: string;
+  extracted_data?: {
+    raw_text?: string;
+    source?: string;
+    document_date?: string;
+    medicines?: string[];
+    hospital_name?: string;
+    entities?: {
+      dates?: string[];
+      primary_date?: string;
+      medicines?: Array<{ name: string; raw_match: string; type: string }>;
+      clinic_name?: string;
+      doctor_name?: string;
+    };
+  };
+}
+
+export interface TimelineItem {
+  id: string;
+  item_type: 'document' | 'answer';
+  title: string;
+  date_or_time: string;
+  timestamp: string;
+  details: {
+    document_id?: number;
+    filename?: string;
+    file_path?: string;
+    type?: string;
+    text?: string;
+    medicines?: string[];
+    clinic_name?: string;
+    doctor_name?: string;
+    question_id?: string;
+    answer_text?: string;
+    source?: string;
+  };
+}
