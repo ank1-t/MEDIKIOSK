@@ -1,11 +1,9 @@
 """
-API router registering all v1 endpoints
+API v1 Router aggregation
 """
 
 from fastapi import APIRouter
+from app.api.v1.sessions import router as sessions_router
 
-router = APIRouter(prefix="/api/v1")
-
-@router.get("/health", tags=["Health"])
-async def v1_health():
-    return {"status": "ok", "api_version": "v1"}
+router = APIRouter()
+router.include_router(sessions_router)

@@ -2,71 +2,49 @@
 Pydantic schemas for MediKiosk API validation
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class HealthResponse(BaseModel):
-    status: str
-    service: str
-    version: str
+    status: str = "ok"
 
 
 class SessionCreate(BaseModel):
-    demo_id: str = Field(..., description="Demo Patient Identifier e.g. DEMO-PT-001")
-    language: str = Field("en", description="Language code: en, hi")
+    demo_id: Optional[str] = Field(None, description="Demo Patient Identifier e.g. DEMO-PT-001")
+    language: Optional[str] = Field("en", description="Language code: en, hi")
+
+
+class AnswerItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: Optional[int] = None
+    question_id: str
+    answer_text: str
+    source: Optional[str] = "touch"
+    timestamp: Optional[datetime] = None
+
+
+class AnswerCreate(BaseModel):
+    question_id: str
+    answer_text: Optional[str] = None
+    answer: Optional[str] = None  # support both 'answer' and 'answer_text' keys
+    source: Optional[str] = "touch"
+
+    def get_text(self) -> str:
+        return self.answer_text if self.answer_text is not None else (self.answer or "")
 
 
 class SessionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
     session_id: str
     patient_id: int
     demo_id: str
     language: str
     status: str
     started_at: datetime
-
-
-class AnswerCreate(BaseModel):
-    question_id: str
-    answer: str
-    source: str = Field("touch", description="'touch' or 'voice'")
-
-
-class QuestionOption(BaseModel):
-    id: str
-    label_en: str
-    label_hi: str
-
-
-class Question(BaseModel):
-    id: str
-    type: str  # yes_no, single_choice, multi_choice, number, date, text
-    text_en: str
-    text_hi: str
-    audio_en: Optional[str] = None
-    audio_hi: Optional[str] = None
-    options: Optional[List[QuestionOption]] = None
-    mandatory: bool = True
-
-
-class SummaryContent(BaseModel):
-    chief_complaint: str
-    history_of_present_illness: str
-    past_medical_history: List[str] = []
-    medications: List[str] = []
-    allergies: List[str] = []
-    family_history: List[str] = []
-    personal_history: List[str] = []
-    review_of_systems: Dict[str, Any] = {}
-    investigations: List[str] = []
-    alerts: List[str] = []
-
-
-class SummaryResponse(BaseModel):
-    id: int
-    session_id: str
-    version: int
-    status: str
-    content: SummaryContent
-    disclaimer: str = "AI-generated draft — physician verification required"
+    completed_at: Optional[datetime] = None
+    answers: List[AnswerItem] = []
