@@ -28,6 +28,7 @@ wheels/
 *.egg
 .pytest_cache/
 venv/
+venv
 ENV/
 medikiosk.db
 uploads/
