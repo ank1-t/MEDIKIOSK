@@ -1,0 +1,36 @@
+{
+  "demo_id": "DEMO-PT-001",
+  "name": "Ramesh Kumar",
+  "age": 52,
+  "gender": "Male",
+  "language": "hi",
+  "chief_complaint": "Acute chest pain for 2 days",
+  "symptoms": [
+    {
+      "name": "Chest pain",
+      "onset": "2 days ago",
+      "severity": "7/10",
+      "character": "Pressure-like squeezing sensation",
+      "radiation": "Left shoulder and arm",
+      "aggravating_factors": "Walking upstairs",
+      "relieving_factors": "Rest"
+    },
+    {
+      "name": "Shortness of breath",
+      "onset": "1 day ago",
+      "severity": "Moderate"
+    }
+  ],
+  "past_history": {
+    "hypertension": true,
+    "diabetes": true,
+    "smoking": "Former smoker (quit 2 years ago)"
+  },
+  "current_medications": [
+    "Metformin 500mg twice daily",
+    "Amlodipine 5mg once daily"
+  ],
+  "allergies": [
+    "Penicillin (Skin rash)"
+  ]
+}

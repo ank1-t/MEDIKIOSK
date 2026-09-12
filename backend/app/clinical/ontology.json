@@ -1,0 +1,64 @@
+{
+  "complaint_trees": {
+    "chest_pain": {
+      "initial_question": "cp_onset",
+      "questions": {
+        "cp_onset": {
+          "id": "cp_onset",
+          "type": "single_choice",
+          "text_en": "When did the chest pain start?",
+          "text_hi": "छाती में दर्द कब शुरू हुआ?",
+          "options": [
+            { "id": "today", "label_en": "Today (sudden)", "label_hi": "आज (अचानक)" },
+            { "id": "1_2_days", "label_en": "1-2 days ago", "label_hi": "1-2 दिन पहले" },
+            { "id": "over_week", "label_en": "More than a week ago", "label_hi": "एक हफ्ते से ज्यादा" }
+          ],
+          "next": "cp_radiation"
+        },
+        "cp_radiation": {
+          "id": "cp_radiation",
+          "type": "single_choice",
+          "text_en": "Does the pain spread to your arm, neck, or back?",
+          "text_hi": "क्या दर्द आपकी बांह, गर्दन या पीठ में फैलता है?",
+          "options": [
+            { "id": "left_arm", "label_en": "Yes, left arm / shoulder", "label_hi": "हाँ, बाईं बांह / कंधे में" },
+            { "id": "jaw_neck", "label_en": "Yes, jaw / neck", "label_hi": "हाँ, जबड़े / गर्दन में" },
+            { "id": "none", "label_en": "No, stays in chest", "label_hi": "नहीं, केवल छाती में रहता है" }
+          ],
+          "next": "cp_breathless"
+        },
+        "cp_breathless": {
+          "id": "cp_breathless",
+          "type": "yes_no",
+          "text_en": "Are you experiencing shortness of breath or sweating?",
+          "text_hi": "क्या आपको सांस लेने में तकलीफ या पसीना आ रहा है?",
+          "next": null
+        }
+      }
+    },
+    "fever": {
+      "initial_question": "fever_duration",
+      "questions": {
+        "fever_duration": {
+          "id": "fever_duration",
+          "type": "single_choice",
+          "text_en": "How many days have you had fever?",
+          "text_hi": "आपको कितने दिनों से बुखार है?",
+          "options": [
+            { "id": "1_3_days", "label_en": "1-3 days", "label_hi": "1-3 दिन" },
+            { "id": "4_7_days", "label_en": "4-7 days", "label_hi": "4-7 दिन" },
+            { "id": "over_week", "label_en": "Over 1 week", "label_hi": "1 हफ्ते से अधिक" }
+          ],
+          "next": "fever_chills"
+        },
+        "fever_chills": {
+          "id": "fever_chills",
+          "type": "yes_no",
+          "text_en": "Do you have chills or shivering?",
+          "text_hi": "क्या आपको ठंड लगकर कंपकंपी होती है?",
+          "next": null
+        }
+      }
+    }
+  }
+}

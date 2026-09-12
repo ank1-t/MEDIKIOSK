@@ -1,0 +1,27 @@
+{
+  "demo_id": "DEMO-PT-002",
+  "name": "Priya Sharma",
+  "age": 28,
+  "gender": "Female",
+  "language": "en",
+  "chief_complaint": "High grade fever and body aches for 4 days",
+  "symptoms": [
+    {
+      "name": "Fever",
+      "onset": "4 days ago",
+      "severity": "102°F intermittent",
+      "character": "With chills",
+      "radiation": "None",
+      "aggravating_factors": "Evening time",
+      "relieving_factors": "Paracetamol"
+    }
+  ],
+  "past_history": {
+    "hypertension": false,
+    "diabetes": false
+  },
+  "current_medications": [
+    "Paracetamol 650mg as needed"
+  ],
+  "allergies": []
+}
