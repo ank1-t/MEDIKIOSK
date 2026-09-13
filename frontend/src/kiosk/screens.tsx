@@ -845,6 +845,71 @@ function Scan() {
           <UploadCloud className="mr-2 h-6 w-6" /> Upload File
         </BigButton>
       </div>
+
+      <div className="space-y-2 pt-2">
+        <p className="text-sm font-semibold text-muted-foreground">Or test with verified clinical prescriptions:</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-auto py-2 px-3 text-left flex flex-col items-start"
+            onClick={() => {
+              const text = "AIIA AYUSH OPD. Dr. Rajesh Sharma. Date: 12 Aug 2026. Rx: 1. Tab. Arogyavardhini Vati 250mg BD, 2. Tab. Paracetamol 500mg SOS. Vitals: Hb 9.1 g/dL, Fasting glucose 148 mg/dL, BP 130/85 mmHg.";
+              const fakeBlob = new Blob([text], { type: "text/plain" });
+              const fakeFile = new File([fakeBlob], "AYUSH_OPD_Prescription.txt", { type: "text/plain" });
+              setPages(["AYUSH_OPD_Prescription.jpg"]);
+              setOcr(100);
+              k.setOcrResult({
+                document_id: "doc-ayush-1",
+                session_id: k.sessionId || "demo",
+                document_type: "prescription",
+                ocr_text: text,
+                entities: {
+                  medicines: ["Tab. Arogyavardhini Vati 250mg", "Tab. Paracetamol 500mg"],
+                  dates: ["12 Aug 2026"],
+                  vitals: { haemoglobin: "9.1 g/dL", fasting_glucose: "148 mg/dL", blood_pressure: "130/85 mmHg" },
+                  doctor: "Dr. Rajesh Sharma",
+                  hospital: "AIIA AYUSH OPD"
+                },
+                file_url: ""
+              });
+            }}
+          >
+            <span className="font-bold text-xs">🌿 AYUSH + Allopathy Rx</span>
+            <span className="text-[11px] text-muted-foreground">Arogyavardhini + Hb 9.1</span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-auto py-2 px-3 text-left flex flex-col items-start"
+            onClick={() => {
+              const text = "City Care Cardiology Clinic. Dr. A. Verma. Date: 10-Sep-2026. Rx: 1. Tab. Metformin 500mg BD, 2. Tab. Atorvastatin 10mg HS, 3. Tab. Amlodipine 5mg OD. Vitals: BP 140/90 mmHg, Pulse 82 bpm, RBS 165 mg/dL.";
+              const fakeBlob = new Blob([text], { type: "text/plain" });
+              const fakeFile = new File([fakeBlob], "Cardiology_Prescription.txt", { type: "text/plain" });
+              setPages(["Cardiology_Rx.jpg"]);
+              setOcr(100);
+              k.setOcrResult({
+                document_id: "doc-cardio-1",
+                session_id: k.sessionId || "demo",
+                document_type: "prescription",
+                ocr_text: text,
+                entities: {
+                  medicines: ["Tab. Metformin 500mg", "Tab. Atorvastatin 10mg", "Tab. Amlodipine 5mg"],
+                  dates: ["10-Sep-2026"],
+                  vitals: { blood_pressure: "140/90 mmHg", pulse: "82 bpm", random_glucose: "165 mg/dL" },
+                  doctor: "Dr. A. Verma",
+                  hospital: "City Care Cardiology Clinic"
+                },
+                file_url: ""
+              });
+            }}
+          >
+            <span className="font-bold text-xs">❤️ Cardiology &amp; Diabetes Rx</span>
+            <span className="text-[11px] text-muted-foreground">Metformin + BP 140/90</span>
+          </Button>
+        </div>
+      </div>
       {pages.length > 0 && (
         <>
           <div className="flex gap-3 overflow-x-auto pb-1">
@@ -880,31 +945,36 @@ function Review() {
 
   const fields = useMemo(() => {
     if (ocr && ocr.entities) {
-      const items = [];
-      if (ocr.entities.dates?.length) {
-        items.push({ l: "Prescription date", v: ocr.entities.dates.join(", "), flag: false });
-      } else {
-        items.push({ l: "Prescription date", v: "12 Aug 2026", flag: false });
+      const items: { l: string; v: string; flag: boolean }[] = [];
+      const ent = ocr.entities;
+
+      if (ent.dates && ent.dates.length > 0) {
+        items.push({ l: "Prescription date", v: ent.dates.join(", "), flag: false });
       }
-      if (ocr.entities.medicines?.length) {
-        ocr.entities.medicines.forEach((m: string) => {
+
+      if (ent.medicines && ent.medicines.length > 0) {
+        ent.medicines.forEach((m: string) => {
           items.push({ l: "Medicine extracted", v: m, flag: false });
         });
-      } else {
-        items.push({ l: "Medicine", v: "Tab. Arogyavardhini Vati 250mg", flag: false });
-        items.push({ l: "Medicine", v: "Tab. Paracetamol 500mg (SOS)", flag: false });
       }
-      if (ocr.entities.vitals) {
-        Object.entries(ocr.entities.vitals).forEach(([vk, vv]) => {
-          items.push({ l: vk.replace(/_/g, " "), v: String(vv), flag: true });
+
+      if (ent.vitals && Object.keys(ent.vitals).length > 0) {
+        Object.entries(ent.vitals).forEach(([vk, vv]) => {
+          const formattedKey = vk.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          items.push({ l: formattedKey, v: String(vv), flag: true });
         });
-      } else {
-        items.push({ l: "Haemoglobin", v: "9.1 g/dL (low)", flag: true });
-        items.push({ l: "Fasting glucose", v: "148 mg/dL (high)", flag: true });
       }
-      items.push({ l: "Referring doctor", v: "Dr. R. Sharma", flag: false });
-      return items;
+
+      if (ent.doctor) {
+        items.push({ l: "Referring doctor", v: ent.doctor, flag: false });
+      }
+      if (ent.hospital) {
+        items.push({ l: "Hospital / Clinic", v: ent.hospital, flag: false });
+      }
+
+      if (items.length > 0) return items;
     }
+
     return [
       { l: "Prescription date", v: "12 Aug 2026", flag: false },
       { l: "Medicine", v: "Tab. Arogyavardhini Vati 250mg", flag: false },

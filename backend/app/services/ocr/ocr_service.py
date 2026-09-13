@@ -14,12 +14,21 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Common medications for clinical intake keyword extraction
+# Common modern and AYUSH medications for clinical intake keyword extraction
 KNOWN_MEDICINES = [
+    # Modern Allopathic
     "Metformin", "Amlodipine", "Atorvastatin", "Paracetamol", "Azithromycin",
     "Pantoprazole", "Omeprazole", "Telmisartan", "Losartan", "Glimepiride",
     "Insulin", "Aspirin", "Clopidogrel", "Cetirizine", "Montelukast",
-    "Amoxicillin", "Ciprofloxacin", "Levothyroxine", "Rosuvastatin", "Ibuprofen"
+    "Amoxicillin", "Ciprofloxacin", "Levothyroxine", "Rosuvastatin", "Ibuprofen",
+    "Dolo", "Combiflam", "Augmentin", "Pan-D", "Rablet", "Glycomet", "Ecosprin",
+    # Ayurvedic & Herbal Formulations (Ministry of AYUSH)
+    "Arogyavardhini Vati", "Triphala Guggulu", "Ashwagandha Churna",
+    "Chyawanprash", "Brahmi Vati", "Kanchnar Guggulu", "Shankhapushpi",
+    "Mahasudarshan Churna", "Sitopaladi Churna", "Chandraprabha Vati",
+    "Khadirarishta", "Amritarishta", "Trikatu Churna", "Gokshuradi Guggulu",
+    "Yograj Guggulu", "Dashmularishta", "Abhayarishta", "Vasavaleha",
+    "Avipattikar Churna", "Sutshekhar Ras", "Laxmivilas Ras"
 ]
 
 # Regex patterns for dates
@@ -27,7 +36,20 @@ DATE_PATTERNS = [
     r"\b\d{1,2}[-/](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-/]\d{2,4}\b",
     r"\b\d{1,2}[-/.](?:0[1-9]|1[0-2]|[1-9])[-/.](?:\d{4}|\d{2})\b",
     r"\b(?:0[1-9]|1[0-2]|[1-9])[-/.](?:0[1-9]|[12]\d|3[01])[-/.](?:\d{4}|\d{2})\b",
+    r"\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b",
 ]
+
+# Regex patterns for clinical vitals and lab markers
+VITAL_PATTERNS = {
+    "haemoglobin": r"(?:Hb|Haemoglobin|Hemoglobin)\s*[:=-]?\s*(\d+(?:\.\d+)?)\s*(?:g/dL|g/dl|gm/dl)?",
+    "fasting_glucose": r"(?:FBS|Fasting\s+(?:Blood\s+)?Glucose|Fasting\s+Sugar)\s*[:=-]?\s*(\d+(?:\.\d+)?)\s*(?:mg/dL|mg/dl)?",
+    "random_glucose": r"(?:RBS|Random\s+(?:Blood\s+)?Glucose|Sugar)\s*[:=-]?\s*(\d+(?:\.\d+)?)\s*(?:mg/dL|mg/dl)?",
+    "blood_pressure": r"(?:BP|Blood\s+Pressure)\s*[:=-]?\s*(\d{2,3}\s*/\s*\d{2,3})\s*(?:mmHg)?",
+    "pulse": r"(?:Pulse|Heart\s+Rate|HR)\s*[:=-]?\s*(\d{2,3})\s*(?:bpm)?",
+    "spo2": r"(?:SpO2|Oxygen|O2)\s*[:=-]?\s*(\d{2,3})\s*%",
+    "serum_creatinine": r"(?:Creatinine|S\.Cr)\s*[:=-]?\s*(\d+(?:\.\d+)?)\s*(?:mg/dL)?",
+    "tsh": r"(?:TSH)\s*[:=-]?\s*(\d+(?:\.\d+)?)\s*(?:uIU/mL|mIU/L)?"
+}
 
 class OCRService:
     @staticmethod
@@ -55,8 +77,7 @@ class OCRService:
     @classmethod
     def extract_entities_from_text(cls, text: str) -> Dict[str, Any]:
         """
-        Extract date, medicines, and clinics using simple keyword search and regex.
-        Satisfies requirement 35: simple keyword search, avoid overengineering.
+        Extract dates, medicines (allopathic + AYUSH), lab vitals, and doctor/clinic names.
         """
         extracted_dates: List[str] = []
         for pattern in DATE_PATTERNS:
@@ -67,8 +88,7 @@ class OCRService:
 
         detected_medicines: List[Dict[str, str]] = []
         for med in KNOWN_MEDICINES:
-            # Match medicine name with optional dosage (e.g., "Metformin 500mg" or "Tab. Metformin")
-            pattern = rf"\b(?:Tab\.?|Cap\.?|Syp\.?)?\s*({med}(?:\s+\d+(?:mg|ml|g))?)\b"
+            pattern = rf"\b(?:Tab\.?|Cap\.?|Syp\.?|Vati|Churna|Ras)?\s*({re.escape(med)}(?:\s+\d+(?:mg|ml|g))?)\b"
             matches = re.finditer(pattern, text, flags=re.IGNORECASE)
             for m in matches:
                 val = m.group(0).strip()
@@ -79,17 +99,36 @@ class OCRService:
                         "type": "medication"
                     })
 
+        # Generic pattern for any Rx line item, e.g. "Tab. BrandName 500mg" or "1. MedicineName 10mg"
+        generic_rx = re.findall(r"(?:^|\n)\s*(?:\d+[\.\)]|Rx:?|Tab\.?|Cap\.?|Syp\.?)\s*([A-Za-z\s]{3,25}\s+\d+\s*(?:mg|ml|g|mcg))", text, flags=re.IGNORECASE)
+        for gen in generic_rx:
+            cleaned = gen.strip()
+            if not any(d["raw_match"].lower() == cleaned.lower() for d in detected_medicines):
+                detected_medicines.append({
+                    "name": cleaned.split()[0],
+                    "raw_match": cleaned,
+                    "type": "medication"
+                })
+
+        # Extract lab vitals
+        detected_vitals: Dict[str, str] = {}
+        for vital_name, vital_regex in VITAL_PATTERNS.items():
+            match = re.search(vital_regex, text, flags=re.IGNORECASE)
+            if match:
+                detected_vitals[vital_name] = match.group(1).strip()
+
         # Detect clinic / doctor if present
-        clinic_match = re.search(r"([A-Za-z\s]+(?:CLINIC|HOSPITAL|HEALTHCARE|MEDICAL CENTER))", text, flags=re.IGNORECASE)
+        clinic_match = re.search(r"([A-Za-z\s]+(?:CLINIC|HOSPITAL|HEALTHCARE|MEDICAL CENTER|INSTITUTE OF AYURVEDA|AIIA))", text, flags=re.IGNORECASE)
         clinic_name = clinic_match.group(1).strip() if clinic_match else None
 
-        doctor_match = re.search(r"(?:Dr\.?|Doctor)\s+([A-Za-z\.\s]+)", text, flags=re.IGNORECASE)
+        doctor_match = re.search(r"(?:Dr\.?|Doctor)\s+([A-Za-z\.\s]{3,30})", text, flags=re.IGNORECASE)
         doctor_name = doctor_match.group(0).strip() if doctor_match else None
 
         return {
             "dates": extracted_dates,
             "primary_date": extracted_dates[0] if extracted_dates else datetime.now().strftime("%Y-%m-%d"),
             "medicines": detected_medicines,
+            "vitals": detected_vitals,
             "clinic_name": clinic_name,
             "doctor_name": doctor_name
         }
@@ -125,6 +164,7 @@ class OCRService:
             "dates": [],
             "primary_date": datetime.now().strftime("%Y-%m-%d"),
             "medicines": [],
+            "vitals": {},
             "clinic_name": None,
             "doctor_name": None
         }
@@ -135,5 +175,6 @@ class OCRService:
             "entities": entities,
             "document_date": entities["primary_date"],
             "medicines": [m["raw_match"] for m in entities["medicines"]],
+            "vitals": entities.get("vitals", {}),
             "hospital_name": entities.get("clinic_name") or "Medical Center"
         }

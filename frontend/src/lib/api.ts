@@ -117,7 +117,24 @@ export const api = {
         body: formData,
       });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return await res.json();
+      const data = await res.json();
+      // Handle both backend DocumentResponse and client format
+      const extracted = data.extracted_data || {};
+      const ent = extracted.entities || {};
+      return {
+        document_id: String(data.id || data.document_id || "doc-1"),
+        session_id: data.session_id || sessionId,
+        document_type: data.type || documentType,
+        ocr_text: data.text || extracted.raw_text || "",
+        entities: {
+          medicines: data.medicines || (extracted.medicines ? extracted.medicines : (ent.medicines ? ent.medicines.map((m: any) => typeof m === "string" ? m : m.raw_match || m.name) : [])),
+          dates: ent.dates || (extracted.document_date ? [extracted.document_date] : []),
+          vitals: ent.vitals || extracted.vitals || {},
+          doctor: ent.doctor_name || extracted.doctor_name,
+          hospital: ent.clinic_name || extracted.hospital_name,
+        },
+        file_url: data.file_path || "",
+      };
     } catch (err) {
       console.warn("Using fallback OCR result:", err);
       return {
