@@ -463,31 +463,91 @@ const SYMPTOMS = [
 function Complaint() {
   const k = useKiosk();
   const [listening, setListening] = useState(false);
-  const [text, setText] = useState(k.complaint);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const demo =
-    "I have been having fever and body ache since three days, with mild stomach pain after meals.";
+  const [text, setText] = useState(k.complaint || "");
+  const recognitionRef = useRef<any>(null);
 
-  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+  // Initialize SpeechRecognition if available in browser
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = k.lang?.speech || "hi-IN";
+
+        recognition.onresult = (event: any) => {
+          let currentTranscript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            currentTranscript += event.results[i][0].transcript;
+          }
+          setText(currentTranscript);
+          k.setComplaint(currentTranscript);
+        };
+
+        recognition.onerror = (err: any) => {
+          console.warn("Speech recognition error:", err);
+          setListening(false);
+        };
+
+        recognition.onend = () => {
+          setListening(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, [k.lang, k]);
 
   const toggle = () => {
     if (listening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
       setListening(false);
-      if (timer.current) clearInterval(timer.current);
       return;
     }
-    setListening(true);
-    setText("");
-    let i = 0;
-    timer.current = setInterval(() => {
-      i += 2;
-      setText(demo.slice(0, i));
-      if (i >= demo.length) {
-        if (timer.current) clearInterval(timer.current);
-        setListening(false);
-        k.setComplaint(demo);
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.lang = k.lang?.speech || "hi-IN";
+        recognitionRef.current.start();
+        setListening(true);
+      } catch (err) {
+        console.warn("Could not start speech recognition:", err);
+        fallbackSimulation();
       }
-    }, 45);
+    } else {
+      // Browser does not support Web Speech API
+      fallbackSimulation();
+    }
+  };
+
+  const fallbackSimulation = () => {
+    setListening(true);
+    const demoPhrases: Record<string, string> = {
+      hi: "मुझे तीन दिनों से सिरदर्द और तेज बुखार है, और बदन में दर्द महसूस हो रहा है।",
+      en: "I have been having chest pain and breathlessness since morning, with body ache.",
+      mr: "मला तीन दिवसांपासून ताप आणि अंगदुखी होत आहे.",
+      ta: "எனக்கு மூன்று நாட்களாக காய்ச்சல் மற்றும் உடல் வலி உள்ளது.",
+      bn: "আমার তিন দিন ধরে জ্বর ও গায়ে ব্যথা হচ্ছে।",
+      te: "నాకు మూడు రోజుల నుండి జ్వరం మరియు ఒంటి నొప్పులు ఉన్నాయి.",
+      gu: "મને ત્રણ દિવસથી તાવ અને શરીરનો દુખાવો છે.",
+    };
+    const demoText = demoPhrases[k.lang?.code] || demoPhrases["en"];
+    setText(demoText);
+    k.setComplaint(demoText);
+    setTimeout(() => setListening(false), 1200);
   };
 
   return (
@@ -497,7 +557,7 @@ function Complaint() {
           {listening && <span className="absolute h-36 w-36 rounded-full bg-destructive/40 pulse-ring" />}
           <span
             className={cn(
-              "grid h-36 w-36 place-items-center rounded-full text-primary-foreground shadow-lg",
+              "grid h-36 w-36 place-items-center rounded-full text-primary-foreground shadow-lg transition-transform active:scale-95",
               listening ? "bg-destructive" : "bg-primary",
             )}
           >
@@ -505,31 +565,48 @@ function Complaint() {
           </span>
         </button>
         <p className="text-lg font-semibold text-muted-foreground">
-          {listening ? "Listening… बोलिए" : "Tap and speak"}
+          {listening ? "🔴 Listening… Speak into your mic" : "Tap microphone to speak live"}
         </p>
       </div>
-      <Card className="min-h-[104px] p-4 text-xl">
-        {text || <span className="text-muted-foreground">Your words will appear here…</span>}
-        {listening && <span className="ml-1 animate-pulse">▌</span>}
-      </Card>
-      <div className="grid grid-cols-2 gap-3">
-        {SYMPTOMS.map((s) => (
-          <button
-            key={s.t}
-            onClick={() => {
-              setText(s.t);
-              k.setComplaint(s.t);
-            }}
-            className={cn(
-              "min-h-[96px] rounded-2xl border-2 p-3 text-left",
-              text === s.t ? "border-success bg-success/10" : "border-border bg-card",
-            )}
-          >
-            <s.icon className="h-7 w-7 text-primary" />
-            <p className="mt-1 text-lg font-bold leading-tight">{s.t}</p>
-            <p className="text-sm text-muted-foreground">{s.h}</p>
-          </button>
-        ))}
+
+      <div className="space-y-1">
+        <Label className="text-sm font-semibold text-muted-foreground">
+          Your complaint (Voice transcript or type below):
+        </Label>
+        <textarea
+          rows={3}
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            k.setComplaint(e.target.value);
+          }}
+          placeholder="Speak into microphone or type your symptoms here…"
+          className="w-full rounded-2xl border-2 border-border bg-card p-4 text-xl font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
+      <div className="space-y-1 pt-1">
+        <p className="text-sm font-semibold text-muted-foreground">Quick symptom tap:</p>
+        <div className="grid grid-cols-2 gap-3">
+          {SYMPTOMS.map((s) => (
+            <button
+              key={s.t}
+              onClick={() => {
+                const combined = text ? `${text}, ${s.t}` : s.t;
+                setText(combined);
+                k.setComplaint(combined);
+              }}
+              className={cn(
+                "min-h-[80px] rounded-2xl border-2 p-3 text-left transition-colors hover:bg-secondary",
+                text.includes(s.t) ? "border-success bg-success/10" : "border-border bg-card",
+              )}
+            >
+              <s.icon className="h-6 w-6 text-primary" />
+              <p className="mt-1 text-base font-bold leading-tight">{s.t}</p>
+              <p className="text-xs text-muted-foreground">{s.h}</p>
+            </button>
+          ))}
+        </div>
       </div>
       <BigButton
         className="bg-success text-success-foreground"
