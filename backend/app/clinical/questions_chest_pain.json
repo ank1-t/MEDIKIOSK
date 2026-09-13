@@ -1,0 +1,69 @@
+[
+  {
+    "id": "cp_onset",
+    "type": "single_choice",
+    "text_en": "When did the chest pain start?",
+    "text_hi": "छाती में दर्द कब शुरू हुआ?",
+    "options": [
+      { "id": "sudden_today", "label_en": "Suddenly today", "label_hi": "आज अचानक" },
+      { "id": "1_2_days", "label_en": "1 to 2 days ago", "label_hi": "1 से 2 दिन पहले" },
+      { "id": "gradual_weeks", "label_en": "Gradual over weeks", "label_hi": "कई हफ्तों से धीरे-धीरे" }
+    ]
+  },
+  {
+    "id": "cp_duration",
+    "type": "single_choice",
+    "text_en": "How long does the pain usually last when it occurs?",
+    "text_hi": "दर्द आमतौर पर कितनी देर तक रहता है?",
+    "options": [
+      { "id": "few_minutes", "label_en": "A few minutes (< 15 mins)", "label_hi": "कुछ मिनट (< 15 मिनट)" },
+      { "id": "hours", "label_en": "Several hours continuous", "label_hi": "लगातार कई घंटे" },
+      { "id": "intermittent", "label_en": "Comes and goes in waves", "label_hi": "लहरों की तरह आता-जाता है" }
+    ]
+  },
+  {
+    "id": "cp_severity",
+    "type": "rating_scale",
+    "min": 1,
+    "max": 10,
+    "text_en": "Rate the severity of pain (1 = Mild discomfort, 10 = Worst unbearable pain):",
+    "text_hi": "दर्द की तीव्रता बताएं (1 = हल्का दर्द, 10 = असहनीय दर्द):",
+    "options": [
+      { "id": "1", "label_en": "1 - Very Mild", "label_hi": "1 - बहुत हल्का" },
+      { "id": "3", "label_en": "3 - Mild", "label_hi": "3 - हल्का" },
+      { "id": "5", "label_en": "5 - Moderate", "label_hi": "5 - मध्यम" },
+      { "id": "7", "label_en": "7 - Severe", "label_hi": "7 - तेज दर्द" },
+      { "id": "10", "label_en": "10 - Unbearable Emergency", "label_hi": "10 - असहनीय आपातकाल" }
+    ]
+  },
+  {
+    "id": "cp_radiation",
+    "type": "yes_no",
+    "text_en": "Does the pain radiate or spread to your left arm, neck, jaw, or back?",
+    "text_hi": "क्या दर्द आपकी बाईं बांह, गर्दन, जबड़े या पीठ में फैलता है?",
+    "options": [
+      { "id": "yes", "label_en": "Yes, radiates to arm/jaw", "label_hi": "हाँ, बांह/जबड़े में फैलता है" },
+      { "id": "no", "label_en": "No, stays localized in chest", "label_hi": "नहीं, केवल छाती में रहता है" }
+    ]
+  },
+  {
+    "id": "cp_breathlessness",
+    "type": "yes_no",
+    "text_en": "Do you feel shortness of breath, sweating, or difficulty breathing?",
+    "text_hi": "क्या आपको सांस फूलना, पसीना आना या सांस लेने में तकलीफ हो रही है?",
+    "options": [
+      { "id": "yes", "label_en": "Yes", "label_hi": "हाँ" },
+      { "id": "no", "label_en": "No", "label_hi": "नहीं" }
+    ]
+  },
+  {
+    "id": "cp_past_cardiac",
+    "type": "yes_no",
+    "text_en": "Do you have any past personal history of heart disease, stent, or heart attack?",
+    "text_hi": "क्या आपका पहले दिल की बीमारी, स्टेंट या दिल के दौरे का इतिहास रहा है?",
+    "options": [
+      { "id": "yes", "label_en": "Yes", "label_hi": "हाँ" },
+      { "id": "no", "label_en": "No", "label_hi": "नहीं" }
+    ]
+  }
+]

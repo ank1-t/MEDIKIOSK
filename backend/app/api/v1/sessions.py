@@ -7,7 +7,7 @@ Endpoints:
 """
 
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session as DBSession
@@ -59,9 +59,10 @@ async def create_session(payload: Optional[SessionCreate] = None, db: DBSession 
 
 
 @router.post("/sessions/{id}/answers", status_code=status.HTTP_201_CREATED)
-async def save_answer(id: str, payload: AnswerCreate, db: DBSession = Depends(get_db)):
+async def save_answer(id: str, payload: Dict[str, Any], db: DBSession = Depends(get_db)):
     """
-    Save one question + answer to the database for a given session.
+    Save one or multiple question + answers to the database for a given session.
+    Supports both single answer object and {'answers': [...]} batch.
     """
     session_obj = db.query(Session).filter(Session.id == id).first()
     if not session_obj:
@@ -70,18 +71,44 @@ async def save_answer(id: str, payload: AnswerCreate, db: DBSession = Depends(ge
             detail=f"Session with id '{id}' not found."
         )
 
-    text_value = payload.get_text()
-    if not text_value:
+    # If batch answers provided: {"answers": [...]}
+    if "answers" in payload and isinstance(payload["answers"], list):
+        created_answers = []
+        for a in payload["answers"]:
+            qid = a.get("question_id")
+            val = a.get("answer_text") or a.get("answer") or ""
+            src = a.get("source") or "touch"
+            if qid and val:
+                ans_record = Answer(
+                    session_id=session_obj.id,
+                    question_id=qid,
+                    answer_text=str(val),
+                    source=src,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                db.add(ans_record)
+                created_answers.append(ans_record)
+        db.commit()
+        return {
+            "status": "success",
+            "saved_count": len(created_answers),
+            "message": f"Saved {len(created_answers)} answers successfully."
+        }
+
+    # Otherwise single answer
+    qid = payload.get("question_id")
+    text_value = payload.get("answer_text") or payload.get("answer")
+    if not text_value or not qid:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Field 'answer_text' or 'answer' must be provided."
+            detail="Field 'question_id' and 'answer_text' or 'answer' must be provided."
         )
 
     new_answer = Answer(
         session_id=session_obj.id,
-        question_id=payload.question_id,
-        answer_text=text_value,
-        source=payload.source or "touch",
+        question_id=qid,
+        answer_text=str(text_value),
+        source=payload.get("source") or "touch",
         timestamp=datetime.now(timezone.utc)
     )
     db.add(new_answer)

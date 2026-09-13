@@ -9,10 +9,13 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - ./uploads:/app/uploads
       - ./sample_data:/sample_data
     environment:
       - DATABASE_URL=sqlite:////app/medikiosk.db
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - FACILITATOR_URL=${FACILITATOR_URL:-https://facilitator.goplausible.xyz}
+      - ENVIRONMENT=production
     restart: unless-stopped
 
   frontend:
@@ -21,11 +24,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
     restart: unless-stopped

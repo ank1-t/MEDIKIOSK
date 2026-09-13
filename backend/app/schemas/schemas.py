@@ -70,3 +70,36 @@ class TimelineItem(BaseModel):
     date_or_time: str
     timestamp: datetime
     details: Dict[str, Any]
+
+
+class SummaryContent(BaseModel):
+    chief_complaint: str
+    hpi: str
+    past_history: List[str] = []
+    allergies: List[str] = []
+    red_flags_noted: List[str] = []
+    source: Optional[str] = "ai_draft"
+
+
+class AISummaryRequest(BaseModel):
+    session_id: str
+
+
+class SummaryUpdate(BaseModel):
+    chief_complaint: Optional[str] = None
+    hpi: Optional[str] = None
+    past_history: Optional[List[str]] = None
+    allergies: Optional[List[str]] = None
+    red_flags_noted: Optional[List[str]] = None
+    status: Optional[str] = "doctor_confirmed"
+
+
+class SummaryResponse(BaseModel):
+    id: int
+    session_id: str
+    version: int
+    content_json: Dict[str, Any]
+    status: str
+    created_at: datetime
+    has_red_flag_alert: bool = False
+    red_flag_message: Optional[str] = None
