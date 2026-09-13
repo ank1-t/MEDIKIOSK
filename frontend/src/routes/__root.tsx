@@ -42,14 +42,20 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <div className="max-w-lg w-full text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        {error && (
+          <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-left overflow-x-auto text-xs font-mono text-destructive">
+            <p className="font-bold">{error.name}: {error.message}</p>
+            {error.stack && <pre className="mt-1 opacity-80 whitespace-pre-wrap">{error.stack}</pre>}
+          </div>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {

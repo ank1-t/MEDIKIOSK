@@ -278,6 +278,7 @@ export function readoutFor(screen: ScreenId): string {
     token: "Your check in is complete. Please collect your token and wait to be called.",
     reset: "Your personal data has been cleared from this kiosk. Thank you.",
     dashboard: "This is your patient companion app with your visit history and care plan.",
+    doctor: "Doctor consultation and review portal.",
   };
-  return map[screen];
+  return map[screen] || "";
 }

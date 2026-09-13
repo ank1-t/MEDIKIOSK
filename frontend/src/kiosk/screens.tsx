@@ -328,6 +328,7 @@ function Consent() {
     { id: "share", t: "Share with Doctor / ABHA", s: "Send this record to your doctor and ABHA locker" },
   ];
   const [on, setOn] = useState<Record<string, boolean>>({ voice: true, docs: true, share: true });
+  const [declined, setDeclined] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAgree = async () => {
