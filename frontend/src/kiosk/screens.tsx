@@ -464,71 +464,145 @@ function Complaint() {
   const k = useKiosk();
   const [listening, setListening] = useState(false);
   const [text, setText] = useState(k.complaint || "");
+  const [speechLang, setSpeechLang] = useState(k.lang?.speech || "hi-IN");
+  const [liveInterim, setLiveInterim] = useState("");
   const recognitionRef = useRef<any>(null);
+  const shouldListenRef = useRef(false);
+  const restartTimerRef = useRef<any>(null);
 
-  // Initialize SpeechRecognition if available in browser
+  // Synchronize speech language when kiosk language switches
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = k.lang?.speech || "hi-IN";
-
-        recognition.onresult = (event: any) => {
-          let currentTranscript = "";
-          for (let i = 0; i < event.results.length; i++) {
-            currentTranscript += event.results[i][0].transcript;
-          }
-          setText(currentTranscript);
-          k.setComplaint(currentTranscript);
-        };
-
-        recognition.onerror = (err: any) => {
-          console.warn("Speech recognition error:", err);
-          setListening(false);
-        };
-
-        recognition.onend = () => {
-          setListening(false);
-        };
-
-        recognitionRef.current = recognition;
-      }
+    const targetLang = k.lang?.speech || "hi-IN";
+    setSpeechLang(targetLang);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.lang = targetLang;
+      } catch {}
     }
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {}
+  }, [k.lang]);
+
+  // Keep SpeechRecognition instance configured
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
+    recognition.lang = speechLang;
+
+    recognition.onresult = (event: any) => {
+      let newlyFinalizedWords = "";
+      let activeInterim = "";
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const item = event.results[i];
+        if (!item || !item[0]) continue;
+        const transcriptChunk = (item[0].transcript || "").trim();
+        if (!transcriptChunk) continue;
+
+        if (item.isFinal) {
+          newlyFinalizedWords = newlyFinalizedWords
+            ? newlyFinalizedWords + " " + transcriptChunk
+            : transcriptChunk;
+        } else {
+          activeInterim = activeInterim
+            ? activeInterim + " " + transcriptChunk
+            : transcriptChunk;
+        }
+      }
+
+      setLiveInterim(activeInterim);
+
+      if (newlyFinalizedWords) {
+        setText((prev) => {
+          const current = prev.trim();
+          const updated = current ? current + " " + newlyFinalizedWords : newlyFinalizedWords;
+          k.setComplaint(updated);
+          return updated;
+        });
       }
     };
-  }, [k.lang, k]);
+
+    recognition.onerror = (err: any) => {
+      console.warn("Speech recognition event:", err?.error || err);
+      if (err?.error === "not-allowed" || err?.error === "service-not-allowed") {
+        shouldListenRef.current = false;
+        setListening(false);
+      }
+    };
+
+    recognition.onend = () => {
+      setLiveInterim("");
+      // Continuous dictation: browser SpeechRecognition cuts off after 4-6 words / pauses.
+      // Immediately restart if the user hasn't pressed the microphone button to stop!
+      if (shouldListenRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = setTimeout(() => {
+          if (shouldListenRef.current) {
+            try {
+              recognition.start();
+            } catch {}
+          }
+        }, 50);
+      } else {
+        setListening(false);
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      shouldListenRef.current = false;
+      clearTimeout(restartTimerRef.current);
+      try {
+        recognition.abort();
+      } catch {}
+    };
+  }, [speechLang, k]);
 
   const toggle = () => {
     if (listening) {
+      shouldListenRef.current = false;
+      clearTimeout(restartTimerRef.current);
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
         } catch {}
       }
       setListening(false);
+      setLiveInterim("");
       return;
     }
 
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.lang = k.lang?.speech || "hi-IN";
+        recognitionRef.current.lang = speechLang;
+        shouldListenRef.current = true;
         recognitionRef.current.start();
         setListening(true);
       } catch (err) {
-        console.warn("Could not start speech recognition:", err);
-        fallbackSimulation();
+        console.warn("Speech start warning, retrying cleanly:", err);
+        try {
+          recognitionRef.current.abort();
+          setTimeout(() => {
+            if (shouldListenRef.current) {
+              try {
+                recognitionRef.current.start();
+                setListening(true);
+              } catch {
+                fallbackSimulation();
+              }
+            }
+          }, 100);
+        } catch {
+          fallbackSimulation();
+        }
       }
     } else {
-      // Browser does not support Web Speech API
       fallbackSimulation();
     }
   };
@@ -564,18 +638,30 @@ function Complaint() {
             <Mic className="h-16 w-16" />
           </span>
         </button>
-        <p className="text-lg font-semibold text-muted-foreground">
-          {listening ? "🔴 Listening… Speak into your mic" : "Tap microphone to speak live"}
-        </p>
+        <div className="text-center space-y-1">
+          <p className="text-lg font-semibold text-muted-foreground">
+            {listening ? "🔴 Recording live… Speak continuously" : "Tap microphone to speak live"}
+          </p>
+          {listening && (
+            <p className="text-xs text-primary font-medium">
+              Continuous mode active (supports full paragraphs / 200+ words). Tap mic again to stop.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1">
-        <Label className="text-sm font-semibold text-muted-foreground">
-          Your complaint (Voice transcript or type below):
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold text-muted-foreground">
+            Your complaint (Voice transcript or type below):
+          </Label>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {text.trim() ? text.trim().split(/\s+/).length : 0} words
+          </span>
+        </div>
         <textarea
-          rows={3}
-          value={text}
+          rows={4}
+          value={text + (liveInterim ? (text ? " " : "") + liveInterim : "")}
           onChange={(e) => {
             setText(e.target.value);
             k.setComplaint(e.target.value);
